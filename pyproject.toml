@@ -1,0 +1,44 @@
+[project]
+name = "faithful"
+version = "0.1.0"
+description = "Does the summary say anything the article did not? Measured on 60k human-labelled summaries."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+build = ["pyarrow"]
+dev = ["pytest", "ruff"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 96
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "PL", "RUF"]
+ignore = [
+    "PLR0913",
+    "PLR2004",
+    # Real articles contain typographic apostrophes, and the tokeniser has to
+    # strip them. Rewriting them as ASCII would silently stop matching the
+    # corpus this repository exists to read.
+    "RUF001",
+    # A whitespace-split block of stopwords is easier to read and to extend
+    # than sixty quoted strings.
+    "SIM905",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests import an exception class beside the `raises` that needs it, so the
+# reader sees what is being asserted without scrolling to the imports.
+"tests/*" = ["PLC0415"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

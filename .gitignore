@@ -1,0 +1,14 @@
+# 68 MB of corpora, all rebuildable: scripts/fetch_data.sh + build_corpus.py
+data/*.csv
+data/*.parquet
+data/corpus.json
+data/frank.json
+
+# The judge's answers ARE the result and are NOT ignored:
+#   data/judge_runs.jsonl
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
