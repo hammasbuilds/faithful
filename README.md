@@ -136,7 +136,7 @@ bash scripts/fetch_data.sh        # AggreFact, FRANK, XSum annotations, XSum tes
 python scripts/build_corpus.py    # -> data/corpus.json
 python scripts/measure.py         # every table above
 
-python -m pytest -q               # 19 passed
+python -m pytest -q               # 31 passed
 ```
 
 Runtime dependencies: **none**. `pyarrow` is needed once, to build the corpus; the library

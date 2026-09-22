@@ -54,6 +54,19 @@ NONE = "NONE"
 _VERDICT = re.compile(r"VERDICT:\s*(FAITHFUL|UNFAITHFUL)", re.I)
 _QUOTE = re.compile(r"QUOTE:\s*(.+)", re.I | re.S)
 
+# The model sometimes restates the instruction before answering it:
+#   QUOTE: the exact words from the SUMMARY that are unsupported, or NONE: NONE (...)
+# Taking the line whole reports the prompt's own wording as the model's quote,
+# which is then of course not in the summary — so an abstention is scored as
+# invented evidence, the one number this module exists to measure.
+_ECHO = re.compile(r"^the exact words from the summary\b[^:]*:\s*", re.I)
+
+# "NONE (but the summary is inaccurate ...)" — the structured answer is NONE and
+# the rest is commentary. The bracket is required: a summary may genuinely open
+# a sentence with "None of the passengers survived", and collapsing that to an
+# abstention would throw away a real quote.
+_NONE_THEN_ASIDE = re.compile(r"^none\s*[(\[]", re.I)
+
 
 class ModelUnavailableError(RuntimeError):
     """The model could not be reached."""
@@ -108,6 +121,9 @@ def parse(raw: str, summary: str) -> Verdict:
     marked = _QUOTE.search(raw)
     if marked:
         quote = marked.group(1).split("\n")[0].strip()
+        quote = _ECHO.sub("", quote).strip()
+        if _NONE_THEN_ASIDE.match(quote):
+            quote = NONE
         # The model sometimes appends its reasoning after the quoted span:
         #   QUOTE: "dpp accepts 77 allegations" (the correct name is "Ratcliffe")
         # Taking the whole line then reports a quote that is not in the summary

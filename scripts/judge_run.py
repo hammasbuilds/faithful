@@ -132,6 +132,16 @@ def main() -> None:
                         # an id that is even slightly wrong silently checks the
                         # quote against somebody else's summary.
                         "summary": item.summary,
+                        # The model's answer verbatim. The quote and the
+                        # verdict below are *parsed* from it, and the parser
+                        # has been wrong twice: once over-capturing commentary
+                        # the model appended after its quote, once taking the
+                        # instruction the model echoed back as the quote
+                        # itself. Both scored an abstention as invented
+                        # evidence. With the raw text on the row, a parser fix
+                        # re-derives every past answer for free; without it the
+                        # only remedy is an hour of contended GPU.
+                        "raw": verdict.raw,
                         "benchmark": item.benchmark,
                         "domain": item.domain,
                         "gold_faithful": item.faithful,

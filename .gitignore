@@ -7,6 +7,15 @@ data/frank.json
 # The judge's answers ARE the result and are NOT ignored:
 #   data/judge_runs.jsonl
 
+# A run whose quotes were parsed by a version of judge.parse since found wrong
+# in two ways, both of which scored an abstention as invented evidence. Kept on
+# disk as provenance for the correction and deliberately not shipped: 600 rows
+# of plausible-looking verdicts invite being read as a result.
+data/judge_runs.superseded-*.jsonl
+
+# Local queue chatter, not a result.
+data/queue.log
+
 .venv/
 __pycache__/
 *.py[cod]
