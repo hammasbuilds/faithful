@@ -28,10 +28,24 @@ _NUMBER = re.compile(r"\b\d[\d,.]*\b")
 # article says two is exactly the failure this is looking for, and it never
 # reaches the digit pattern.
 WORD_NUMBERS = {
-    "one": "1", "two": "2", "three": "3", "four": "4", "five": "5",
-    "six": "6", "seven": "7", "eight": "8", "nine": "9", "ten": "10",
-    "eleven": "11", "twelve": "12", "twenty": "20", "thirty": "30",
-    "forty": "40", "fifty": "50", "hundred": "100", "thousand": "1000",
+    "one": "1",
+    "two": "2",
+    "three": "3",
+    "four": "4",
+    "five": "5",
+    "six": "6",
+    "seven": "7",
+    "eight": "8",
+    "nine": "9",
+    "ten": "10",
+    "eleven": "11",
+    "twelve": "12",
+    "twenty": "20",
+    "thirty": "30",
+    "forty": "40",
+    "fifty": "50",
+    "hundred": "100",
+    "thousand": "1000",
 }
 
 STOP = frozenset(
@@ -89,9 +103,7 @@ def numbers(text: str) -> set[str]:
     """Every quantity, digits and words alike, normalised."""
     lowered = text.lower()
     found = {n.replace(",", "").rstrip(".") for n in _NUMBER.findall(lowered)}
-    found |= {
-        WORD_NUMBERS[w] for w in _WORD.findall(lowered) if w in WORD_NUMBERS
-    }
+    found |= {WORD_NUMBERS[w] for w in _WORD.findall(lowered) if w in WORD_NUMBERS}
     return {n for n in found if n}
 
 

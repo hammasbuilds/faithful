@@ -1,10 +1,10 @@
 # faithful
 
-> Three ways a summarisation faithfulness checker looks better than it is — measured on 10,066 human-labelled summaries.
+> Four ways a summarisation faithfulness checker looks better than it is — measured on 10,066 human-labelled summaries, and on a 14B judge over every one of them.
 
-**Status:** the model-free half is complete and measured. The 14B judge is written and
-tested, and has not been run: the GPU is busy with another session's work, and evicting it
-is not something this repository does. See [What is not measured yet](#what-is-not-measured-yet).
+**Status:** complete. The model-free half is measured, and the 14B judge has now been run
+over **all 9,979 distinct summaries** — 4 hours 25 minutes on one Quadro RTX 5000. Its own
+evidence turns out to be false in 6% of its flags.
 
 ## The corpus
 
@@ -99,19 +99,68 @@ carrying exactly **one** kind of error, so the groups cannot overlap:
 Different corpus, different annotators, different taxonomy, same conclusion. That is why
 three grains rather than one.
 
+## Finding 4 — the detector invents its own evidence in 6% of its flags
+
+`qwen2.5:14b-instruct` judged **all 9,979 distinct summaries** in the corpus. The prompt
+requires a verdict *and* a quote of the exact words it objects to, and that quote is
+checkable with no judgement at all: the string is in the summary or it is not.
+
+| | |
+|---|---:|
+| Called unfaithful | 4,606 |
+| **Quote is not in the summary** | **276 — 6.0% of flags** |
+| Refused to name any words | 21 — 0.5% |
+
+**A detector that says "unfaithful" and then quotes a phrase the summary never contained has
+invented its own evidence.** Nothing else in the pipeline notices, because the verdict is
+still scored correct whenever it happens to land on a genuinely unfaithful summary. The
+accuracy column cannot see this; only asking the model to point at something can.
+
+```
+[xsum]  quoted: 'sadiq khan has praised the grenfell tower fire as "frightened"...'
+[cnndm] quoted: 'the boy was rescued by his parents before firefighters and para...'
+```
+
+It is not evenly spread. Per benchmark, invented evidence as a share of flags:
+
+| Benchmark | n | Accuracy | F1 | Invented evidence |
+|---|---:|---:|---:|---:|
+| XSumFaith | 2,343 | 0.846 | 0.913 | 79/2,025 — 3.9% |
+| SummEval | 1,646 | 0.875 | 0.605 | 36/340 — **10.6%** |
+| FactCC | 1,434 | 0.835 | 0.598 | 17/395 — 4.3% |
+| FRANK | 1,392 | 0.817 | 0.804 | 59/611 — 9.7% |
+| Polytope | 1,244 | 0.834 | 0.585 | 50/328 — **15.2%** |
+| Cao22 | 696 | 0.675 | 0.653 | 12/354 — 3.4% |
+| CLIFF | 600 | 0.812 | 0.729 | 13/191 — 6.8% |
+| Wang20 | 474 | 0.781 | 0.791 | 8/253 — 3.2% |
+| Goyal21 | 150 | 0.753 | 0.829 | 2/109 — 1.8% |
+
+### And the judge's own accuracy
+
+| Split | n | Accuracy | Precision | Recall | F1 |
+|---|---:|---:|---:|---:|---:|
+| pooled | 9,979 | 0.825 | 0.773 | 0.836 | 0.803 |
+| cnndm | 6,154 | 0.842 | **0.598** | 0.789 | 0.680 |
+| xsum | 3,825 | 0.799 | **0.878** | 0.857 | 0.868 |
+
+**cnndm has the higher accuracy and the worse precision.** 79% of cnndm is genuinely
+faithful, so accuracy is carried by the majority class while precision on the thing the
+detector exists to find collapses. That is Finding 2 again, on a 14B instead of on word
+counting — the metric moved, the failure did not.
+
+Positive class is UNFAITHFUL throughout. Scoring it the other way round makes a detector
+that flags nothing look excellent.
+
+### 73 summaries in this corpus are duplicates
+
+Judging every row surfaced something about AggreFact itself: **160 of the 10,066 rows are
+73 summaries repeated two or three times** inside the same benchmark and domain — identical
+strings, not hash collisions. The report deduplicates and says how many it dropped. It moves
+pooled accuracy by one thousandth, which is precisely the size of error nobody checks.
+
 ## What is not measured yet
 
-**The 14B judge has not been run.** `src/faithful/judge.py` is written and unit-tested, and
-asks `qwen2.5:14b-instruct` for a verdict plus **a quote of the words it objects to** — the
-quote being checkable without any judgement at all. That yields a question worth asking:
-*does a hallucination detector hallucinate its own evidence?* `Verdict.quote_is_real` exists
-to count it.
-
-It has not been run because another session holds the GPU (`qwen2.5-coder:14b`, 98%
-utilisation), and taking it would destroy that session's work. The comparison is queued, not
-abandoned.
-
-Two further things this repository does **not** claim:
+Two things this repository does **not** claim:
 
 - **Nothing here measures whether a 14B writes unfaithful summaries.** Every label in the
   corpus is on output from 2018–2021 systems. The corpus can score a 14B as a *judge* of

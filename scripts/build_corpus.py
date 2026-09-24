@@ -69,9 +69,7 @@ def frank_errors() -> dict[str, dict]:
     out: dict[str, dict] = {}
     for key, rows in by_hash.items():
         kinds = sorted(
-            kind
-            for kind in ERROR_KINDS
-            if any(float(r.get(kind, 1.0)) < PRESENT for r in rows)
+            kind for kind in ERROR_KINDS if any(float(r.get(kind, 1.0)) < PRESENT for r in rows)
         )
         out[key] = {
             "error_kinds": kinds,
@@ -185,9 +183,9 @@ def main() -> None:
             {
                 "id": key,
                 "doc": doc_key[text],
-                "benchmark": row["dataset"],     # XSumFaith, FRANK, SummEval, ...
-                "domain": row["origin"],         # cnndm | xsum
-                "split": row["cut"],             # val | test
+                "benchmark": row["dataset"],  # XSumFaith, FRANK, SummEval, ...
+                "domain": row["origin"],  # cnndm | xsum
+                "split": row["cut"],  # val | test
                 "model": row["model_name"],
                 "summary": row["summary"],
                 "faithful": label == "1",
@@ -206,9 +204,7 @@ def main() -> None:
     graded = xsum_graded(documents, doc_key)
 
     OUT.write_text(
-        json.dumps(
-            {"documents": documents, "items": items, "graded": graded}, indent=0
-        ),
+        json.dumps({"documents": documents, "items": items, "graded": graded}, indent=0),
         encoding="utf-8",
     )
     print(f"{len(graded):,} span-annotated summaries (XSum, own grain)")

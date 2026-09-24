@@ -68,8 +68,10 @@ def wait_for_card(want: str, every: int, limit: float, settle: int = 1) -> bool:
             free_in_a_row += 1
             if free_in_a_row >= settle:
                 return True
-            print(f"  card looks free ({free_in_a_row}/{settle}) — holding back in case "
-                  f"somebody else is between jobs")
+            print(
+                f"  card looks free ({free_in_a_row}/{settle}) — holding back in case "
+                f"somebody else is between jobs"
+            )
         else:
             if free_in_a_row:
                 print("  somebody else took it — good, waiting again")
@@ -96,9 +98,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    print(f"queued for {args.model}; polling every {args.poll}s, "
-          f"claiming only after {args.settle} consecutive free polls "
-          f"({args.settle * args.poll / 60:.0f} min quiet)")
+    print(
+        f"queued for {args.model}; polling every {args.poll}s, "
+        f"claiming only after {args.settle} consecutive free polls "
+        f"({args.settle * args.poll / 60:.0f} min quiet)"
+    )
     if not wait_for_card(args.model, args.poll, args.max_wait, args.settle):
         print(f"\ngave up after {args.max_wait / 3600:.0f}h. The card was never free.")
         print("Nothing was run and nothing was evicted. Rerun to queue again.")
@@ -107,8 +111,14 @@ def main() -> None:
     print("card is free — starting the judge")
     raise SystemExit(
         subprocess.call(
-            [sys.executable, str(HERE / "judge_run.py"), "--n", str(args.n),
-             "--model", args.model]
+            [
+                sys.executable,
+                str(HERE / "judge_run.py"),
+                "--n",
+                str(args.n),
+                "--model",
+                args.model,
+            ]
         )
     )
 

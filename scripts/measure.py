@@ -64,9 +64,7 @@ def grain_one(items) -> None:
 
     for domain in ("cnndm", "xsum"):
         sub = [i for i in items if i.domain == domain]
-        a, m_u, m_f = auc(
-            [i for i in sub if not i.faithful], [i for i in sub if i.faithful]
-        )
+        a, m_u, m_f = auc([i for i in sub if not i.faithful], [i for i in sub if i.faithful])
         share = sum(1 for i in sub if i.faithful) / len(sub) * 100
         print(
             f"  {domain:<6} n={len(sub):>5}  AUC {a:.3f}"

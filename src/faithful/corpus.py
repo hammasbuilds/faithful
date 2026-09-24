@@ -69,10 +69,10 @@ class Item:
     """One summary, its article, and what the annotators said."""
 
     id: str
-    benchmark: str          # XSumFaith, FRANK, SummEval, FactCC, Polytope, ...
-    domain: str             # cnndm | xsum
-    split: str              # val | test
-    model: str              # the system that wrote the summary
+    benchmark: str  # XSumFaith, FRANK, SummEval, FactCC, Polytope, ...
+    domain: str  # cnndm | xsum
+    split: str  # val | test
+    model: str  # the system that wrote the summary
     document: str
     summary: str
     faithful: bool

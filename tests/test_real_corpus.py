@@ -72,17 +72,13 @@ def test_pooling_the_domains_inflates_the_score(items):
     # unfaithful (77% vs 21%). Pool them and "many ungrounded words" becomes a
     # detector for "is XSum", which is a detector for "is unfaithful". The
     # checker scores well by identifying the domain.
-    pooled = auc(
-        [i for i in items if not i.faithful], [i for i in items if i.faithful]
-    )
+    pooled = auc([i for i in items if not i.faithful], [i for i in items if i.faithful])
     assert pooled == pytest.approx(0.820, abs=0.01)
 
     within = {}
     for domain in ("cnndm", "xsum"):
         sub = [i for i in items if i.domain == domain]
-        within[domain] = auc(
-            [i for i in sub if not i.faithful], [i for i in sub if i.faithful]
-        )
+        within[domain] = auc([i for i in sub if not i.faithful], [i for i in sub if i.faithful])
 
     assert within["cnndm"] == pytest.approx(0.669, abs=0.01)
     assert within["xsum"] == pytest.approx(0.668, abs=0.01)
@@ -119,7 +115,7 @@ def test_f1_flatters_the_checker_on_an_imbalanced_set(items):
     recall = tp / (tp + fn)
     f1 = 2 * precision * recall / (precision + recall)
 
-    assert sum(flagged) / len(xsum) > 0.97   # it flags almost everything
+    assert sum(flagged) / len(xsum) > 0.97  # it flags almost everything
     assert f1 == pytest.approx(0.868, abs=0.01)
     assert sum(truth) / len(xsum) == pytest.approx(0.77, abs=0.02)
 
@@ -171,11 +167,7 @@ def test_a_second_corpus_and_taxonomy_agree(items):
     base = [i for i in typed_items if i.faithful]
 
     def only(kind):
-        return [
-            i
-            for i in typed_items
-            if not i.faithful and i.error_kinds == (kind,)
-        ]
+        return [i for i in typed_items if not i.faithful and i.error_kinds == (kind,)]
 
     out_of_article = only("OutE")
     wrong_entity = only("EntE")

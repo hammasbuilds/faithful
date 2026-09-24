@@ -16,6 +16,7 @@ and nothing else in the pipeline would have caught it.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from collections import Counter, defaultdict
@@ -40,9 +41,25 @@ def planned() -> int:
     available, which makes the report readable from the jsonl alone.
     """
     try:
-        from faithful import corpus
+        # Imported here, not at module scope: the report is meant to be readable
+        # from data/judge_runs.jsonl alone, on a machine where the corpus has
+        # not been fetched. A top-level import would make that an ImportError
+        # instead of the "completeness unknown" line below.
+        from faithful import corpus  # noqa: PLC0415
 
-        return len(corpus.load())
+        items = corpus.load()
+        # Distinct summaries, not rows: the report deduplicates, so the target
+        # has to be deduplicated the same way. Comparing 9,979 answers against
+        # 10,066 items made a finished run report as permanently PARTIAL.
+        keys = {
+            (
+                i.benchmark,
+                i.domain,
+                hashlib.blake2b(i.summary.encode("utf-8"), digest_size=4).hexdigest(),
+            )
+            for i in items
+        }
+        return len(keys)
     except Exception:
         return 0
 
@@ -53,11 +70,37 @@ def rule(title: str) -> None:
     print("=" * 74)
 
 
-def load() -> list[dict]:
+def load() -> tuple[list[dict], int]:
+    """Every answer, one per distinct summary. Returns (rows, duplicates_dropped).
+
+    The file can hold the same id more than once, and it is not a bug in the
+    runner: `item_id` is (benchmark, domain, hash-of-summary), and the corpus
+    contains 73 summaries that appear 2-3 times inside the same benchmark and
+    domain - 160 rows for 73 distinct texts, identical strings, not hash
+    collisions. Each copy is a separate corpus item, so each gets judged and
+    written under the shared id.
+
+    Counting all of them would weight those 73 summaries two or three times in
+    every number below. It is only 0.7% of the file, which is exactly the size
+    of error that never gets checked and quietly moves a third decimal place.
+    The duplication is reported rather than silently collapsed, because a
+    faithfulness benchmark containing duplicate summaries is worth knowing
+    about on its own.
+    """
     if not RUNS.exists():
         raise SystemExit(f"{RUNS} is missing. Run scripts/judge_run.py first.")
-    return [json.loads(line) for line in RUNS.read_text(encoding="utf-8").splitlines()
-            if line.strip()]
+    seen: dict[str, dict] = {}
+    total = 0
+    for line in RUNS.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        total += 1
+        row = json.loads(line)
+        # Keep the first answer for an id. They are answers to the same summary
+        # text, so which one is kept is arbitrary; taking the first makes the
+        # report deterministic for a given file.
+        seen.setdefault(row["id"], row)
+    return list(seen.values()), total - len(seen)
 
 
 def confusion(rows) -> dict[str, int]:
@@ -84,12 +127,18 @@ def scores(rows) -> dict[str, float]:
     }
 
 
-def the_run(rows) -> None:
+def the_run(rows, duplicates: int = 0) -> None:
     rule("the run")
+    if duplicates:
+        print(f"duplicate answers  {duplicates:>5} dropped — the corpus holds 73 summaries")
+        print("                         that appear 2-3 times in the same benchmark and")
+        print("                         domain, so each was judged once per copy")
     total = planned()
     if total:
-        print(f"answers recorded   {len(rows):>5} of {total:,} in the corpus"
-              f"   ({len(rows) / total:.0%})")
+        print(
+            f"answers recorded   {len(rows):>5} of {total:,} distinct summaries"
+            f"   ({len(rows) / total:.0%})"
+        )
         if len(rows) < total:
             print("  PARTIAL — the run has not finished. Everything below is on what exists.")
     else:
@@ -106,8 +155,10 @@ def the_scores(rows) -> None:
     rule("what it got right")
     print(f"{'split':<12}{'n':>6}{'accuracy':>11}{'precision':>11}{'recall':>9}{'F1':>8}")
     s = scores(rows)
-    print(f"{'pooled':<12}{s['n']:>6}{s['accuracy']:>11.3f}"
-          f"{s['precision']:>11.3f}{s['recall']:>9.3f}{s['f1']:>8.3f}")
+    print(
+        f"{'pooled':<12}{s['n']:>6}{s['accuracy']:>11.3f}"
+        f"{s['precision']:>11.3f}{s['recall']:>9.3f}{s['f1']:>8.3f}"
+    )
     per = {}
     for domain in ("cnndm", "xsum"):
         part = [r for r in rows if r["domain"] == domain]
@@ -115,8 +166,10 @@ def the_scores(rows) -> None:
             continue
         per[domain] = scores(part)
         d = per[domain]
-        print(f"{domain:<12}{d['n']:>6}{d['accuracy']:>11.3f}"
-              f"{d['precision']:>11.3f}{d['recall']:>9.3f}{d['f1']:>8.3f}")
+        print(
+            f"{domain:<12}{d['n']:>6}{d['accuracy']:>11.3f}"
+            f"{d['precision']:>11.3f}{d['recall']:>9.3f}{d['f1']:>8.3f}"
+        )
 
     if len(per) == 2:
         pooled = s["accuracy"]
@@ -127,8 +180,10 @@ def the_scores(rows) -> None:
             print("    act as a domain detector, because the two domains differ")
             print("    sharply in how often they are faithful.")
         else:
-            print(f"\n  pooled {pooled:.3f} sits between the domains"
-                  f" ({min(both):.3f}-{max(both):.3f}), so no pooling effect here.")
+            print(
+                f"\n  pooled {pooled:.3f} sits between the domains"
+                f" ({min(both):.3f}-{max(both):.3f}), so no pooling effect here."
+            )
     print("\n  Positive class is UNFAITHFUL throughout: that is the thing the")
     print("  detector exists to find, and scoring the other way round makes a")
     print("  detector that flags nothing look excellent.")
@@ -144,10 +199,14 @@ def the_evidence(rows) -> None:
         print("nothing was called unfaithful")
         return
     print(f"called unfaithful                    {len(flagged):>5}")
-    print(f"  quote is not in the summary        {len(invented):>5}"
-          f"   {len(invented) / len(flagged):>6.1%} of flags")
-    print(f"  refused to name any words at all   {len(abstained):>5}"
-          f"   {len(abstained) / len(flagged):>6.1%} of flags")
+    print(
+        f"  quote is not in the summary        {len(invented):>5}"
+        f"   {len(invented) / len(flagged):>6.1%} of flags"
+    )
+    print(
+        f"  refused to name any words at all   {len(abstained):>5}"
+        f"   {len(abstained) / len(flagged):>6.1%} of flags"
+    )
 
     verifiable = sum(1 for r in rows if "summary" in r)
     if verifiable < len(rows):
@@ -189,8 +248,8 @@ def by_benchmark(rows) -> None:
 
 
 def main() -> None:
-    rows = load()
-    the_run(rows)
+    rows, duplicates = load()
+    the_run(rows, duplicates)
     the_scores(rows)
     the_evidence(rows)
     by_benchmark(rows)
