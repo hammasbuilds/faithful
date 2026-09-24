@@ -21,3 +21,11 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+
+# Progress logs from a judge run, not a result. The answers themselves are
+# data/judge_runs.jsonl, which is deliberately NOT ignored above.
+data/judge_full.log
+data/judge_*.log
+
+# Scratch launcher for the detached GPU run.
+run_judge.bat

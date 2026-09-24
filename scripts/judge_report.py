@@ -25,7 +25,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 RUNS = DATA / "judge_runs.jsonl"
-PLANNED = 600
+
+
+def planned() -> int:
+    """How many answers this run is aiming at, read from the corpus.
+
+    This was hard-coded to 600 - the sample size of the first run. When the run
+    was widened to the whole corpus the report went on dividing by 600, so it
+    announced "1,675 of 600 planned (279%)" and declared itself finished while
+    eight thousand items were still queued. A constant that describes one run
+    is wrong for the next one.
+
+    Falls back to the number of answers on disk when the corpus is not
+    available, which makes the report readable from the jsonl alone.
+    """
+    try:
+        from faithful import corpus
+
+        return len(corpus.load())
+    except Exception:
+        return 0
 
 
 def rule(title: str) -> None:
@@ -67,10 +86,15 @@ def scores(rows) -> dict[str, float]:
 
 def the_run(rows) -> None:
     rule("the run")
-    print(f"answers recorded   {len(rows):>5} of {PLANNED} planned"
-          f"   ({len(rows) / PLANNED:.0%})")
-    if len(rows) < PLANNED:
-        print("  PARTIAL — the run has not finished. Everything below is on what exists.")
+    total = planned()
+    if total:
+        print(f"answers recorded   {len(rows):>5} of {total:,} in the corpus"
+              f"   ({len(rows) / total:.0%})")
+        if len(rows) < total:
+            print("  PARTIAL — the run has not finished. Everything below is on what exists.")
+    else:
+        print(f"answers recorded   {len(rows):>5}")
+        print("  corpus not readable, so completeness is unknown")
     gold = Counter(r["gold_faithful"] for r in rows)
     dom = Counter(r["domain"] for r in rows)
     print(f"gold faithful      {gold[True]:>5}   unfaithful {gold[False]}")
