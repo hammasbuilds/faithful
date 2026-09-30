@@ -31,7 +31,7 @@ It is to establish how much of the problem needs one.
 python scripts/measure.py     # prints every table below
 ```
 
-## Finding 1 — pooling the domains inflates the score
+## Result 1 — pooling the domains inflates the score
 
 | | n | AUC | faithful | mean ungrounded (unfaithful vs faithful) |
 |---|---:|---:|---:|---|
@@ -49,7 +49,7 @@ unfaithful". The checker scores 0.820 by identifying the **domain**.
 
 Both conditions are needed, and both are pinned by a test.
 
-## Finding 2 — F1 flatters a checker on an imbalanced set
+## Result 2 — F1 on an imbalanced set
 
 On XSum alone, flagging **97.4% of everything**:
 
@@ -63,7 +63,7 @@ On XSum alone, flagging **97.4% of everything**:
 data, scores **AUC 0.668**. One number says excellent, the other says barely better than a
 coin flip, and only the second is about the checker.
 
-## Finding 3 — invented content is detectable, recombined content is not
+## Result 3 — invented content is detectable, recombined content is not
 
 The central result, and the reason the corpus needed a span grain.
 
@@ -99,7 +99,7 @@ carrying exactly **one** kind of error, so the groups cannot overlap:
 Different corpus, different annotators, different taxonomy, same conclusion. That is why
 three grains rather than one.
 
-## Finding 4 — the detector invents its own evidence in 6% of its flags
+## Result 4 — the detector invents its own evidence in 6% of its flags
 
 `qwen2.5:14b-instruct` judged **all 9,979 distinct summaries** in the corpus. The prompt
 requires a verdict *and* a quote of the exact words it objects to, and that quote is
