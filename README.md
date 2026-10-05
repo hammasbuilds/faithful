@@ -203,3 +203,11 @@ scripts/
   build_corpus.py  merge into data/corpus.json
   measure.py       print every number this README claims
 ```
+
+## Licence
+
+Code: MIT, see [LICENSE](LICENSE). The corpus is not committed; `scripts/fetch_data.sh`
+downloads AggreFact, FRANK and the XSum hallucination annotations, each under its own
+licence. `data/judge_runs.jsonl` and `data/judge_report.txt` are this repository's judge
+output (CC BY 4.0); the summaries quoted inside them come from those benchmarks and stay
+under the benchmarks' terms.
